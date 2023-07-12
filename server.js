@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
+const { default: axios } = require('axios');
 const io = new Server(server,
   {
     cors: {
@@ -11,6 +12,8 @@ const io = new Server(server,
     }
   }
 );
+
+app.use(express.json({ limit: "50mb" }));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -57,6 +60,15 @@ app.get("/music/:song", function (req, res) {
   // Stream the video chunk to the client
   audioStream.pipe(res);
 });
+
+app.get("/music1/:song",(req,res) => {
+  axios
+    .get(`https://vid.puffyan.us/search?q=${req.params.song}`)
+    .then((res1) => {
+      console.log((res1.data))
+      res.send("Ok")
+    })
+})
 
 io.on('connection', (socket) => {
   console.log('a user connected');
