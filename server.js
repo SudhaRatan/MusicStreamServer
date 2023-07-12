@@ -3,6 +3,7 @@ const app = express();
 const http = require('http');
 const fs = require('fs');
 const server = http.createServer(app);
+const ytdl = require('ytdl-core');
 const { Server } = require("socket.io");
 const { default: axios } = require('axios');
 const io = new Server(server,
@@ -19,7 +20,7 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/music',(req,res) => {
+app.get('/music', (req, res) => {
   res.setHeader('Content-Type', 'audio/mpeg')
   const audioStream = fs.createReadStream('music/song.mp3');
   audioStream.pipe(res)
@@ -31,6 +32,15 @@ app.get("/music/:song", function (req, res) {
   if (!range) {
     res.status(400).send("Requires Range header");
   }
+
+  // axios
+  // .get(`https://vid.puffyan.us/search?q=${req.params.song}+song`)
+  // .then((res1) => {
+  //   var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
+  //   console.log(res1.data.slice(startIndex,startIndex+11))
+  //   ytdl(`http://www.youtube.com/watch?v=${res1.data.slice(startIndex,startIndex+11)}`, { quality: 'highestaudio' })
+  //     .pipe(fs.createWriteStream(`${res1.data.slice(startIndex,startIndex+11)}.mp3`))
+  // })
 
   // get video stats (about 61MB)
   const videoPath = `music/${req.params.song}.mp3`;
@@ -61,20 +71,26 @@ app.get("/music/:song", function (req, res) {
   audioStream.pipe(res);
 });
 
-app.get("/music1/:song",(req,res) => {
+app.get("/music1/:song", (req, res) => {
   axios
-    .get(`https://vid.puffyan.us/search?q=${req.params.song}`)
-    .then((res1) => {
-      console.log((res1.data))
-      res.send("Ok")
+    .get(`https://vid.puffyan.us/search?q=${req.params.song}+song`)
+    .then(async (res1) => {
+      var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
+      console.log(res1.data.slice(startIndex, startIndex + 11))
+      ytdl(`http://www.youtube.com/watch?v=${res1.data.slice(startIndex, startIndex + 11)}`, { quality: 'highestaudio' })
+        .pipe(fs.createWriteStream(`music/${res1.data.slice(startIndex, startIndex + 11)}.mp3`))
+        .on("finish", () => {
+          console.log("Done")
+        })
+      // .then(console.log('done'))
     })
 })
 
 io.on('connection', (socket) => {
   console.log('a user connected');
 
-  socket.on('playsong',song => {
-    io.emit('playsong',song)
+  socket.on('playsong', song => {
+    io.emit('playsong', song)
   })
 
   socket.on('disconnect', () => {
