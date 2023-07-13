@@ -55,15 +55,23 @@ io.on('connection', (socket) => {
 
   socket.on('playsong', song => {
     axios
-    .get(`https://vid.puffyan.us/search?q=${song}+song`)
+    .get(`https://vid.puffyan.us/search?q=${song}+audio+song`)
     .then(async (res1) => {
       var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
       var id = res1.data.slice(startIndex, startIndex + 11)
       // console.log("Getting url for id: ", id)
       let e = await ytdl.getInfo(`http://www.youtube.com/watch?v=${id}`);
+      // console.log(e.videoDetails.thumbnails)
       let audioFormat = ytdl.chooseFormat(e.formats, { quality: 'highestaudio', filter: 'audioonly' });
       var url = audioFormat.url;
-      io.emit('playsong', url)
+      var title = e.videoDetails.title
+      var thumbnails = e.videoDetails.thumbnails
+      var thumbnail = e.videoDetails.thumbnails[thumbnails.length - 1]
+      io.emit('playsong', {
+        url,
+        title,
+        thumbnail
+      })
     })
     
   })
