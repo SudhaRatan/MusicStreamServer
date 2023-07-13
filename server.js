@@ -6,6 +6,14 @@ const server = http.createServer(app);
 const ytdl = require('ytdl-core');
 const { Server } = require("socket.io");
 const { default: axios } = require('axios');
+const cors=require("cors");
+const corsOptions ={
+   origin:'*', 
+   credentials:true,            //access-control-allow-credentials:true
+   optionSuccessStatus:200,
+}
+
+app.use(cors(corsOptions))
 const io = new Server(server,
   {
     cors: {
@@ -21,76 +29,43 @@ app.get('/', (req, res) => {
 });
 
 app.get('/music', (req, res) => {
-  res.setHeader('Content-Type', 'audio/mpeg')
-  const audioStream = fs.createReadStream('music/song.mp3');
-  audioStream.pipe(res)
+  res.send("Ok")
 })
 
+
 app.get("/music/:song", function (req, res) {
-  // Ensure there is a range given for the video
-  const range = req.headers.range;
-  if (!range) {
-    res.status(400).send("Requires Range header");
-  }
 
-  // axios
-  // .get(`https://vid.puffyan.us/search?q=${req.params.song}+song`)
-  // .then((res1) => {
-  //   var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
-  //   console.log(res1.data.slice(startIndex,startIndex+11))
-  //   ytdl(`http://www.youtube.com/watch?v=${res1.data.slice(startIndex,startIndex+11)}`, { quality: 'highestaudio' })
-  //     .pipe(fs.createWriteStream(`${res1.data.slice(startIndex,startIndex+11)}.mp3`))
-  // })
-
-  // get video stats (about 61MB)
-  const videoPath = `music/${req.params.song}.mp3`;
-  const videoSize = fs.statSync(videoPath).size;
-
-  // Parse Range
-  // Example: "bytes=32324-"
-  const CHUNK_SIZE = 10 ** 6; // 1MB
-  const start = Number(range.replace(/\D/g, ""));
-  const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
-
-  // Create headers
-  const contentLength = end - start + 1;
-  const headers = {
-    "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-    "Accept-Ranges": "bytes",
-    "Content-Length": contentLength,
-    "Content-Type": "audio/mp3",
-  };
-
-  // HTTP Status 206 for Partial Content
-  res.writeHead(206, headers);
-
-  // create video read stream for this particular chunk
-  const audioStream = fs.createReadStream(videoPath, { start, end });
-
-  // Stream the video chunk to the client
-  audioStream.pipe(res);
-});
-
-app.get("/music1/:song", (req, res) => {
   axios
     .get(`https://vid.puffyan.us/search?q=${req.params.song}+song`)
     .then(async (res1) => {
       var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
-      console.log(res1.data.slice(startIndex, startIndex + 11))
-      ytdl(`http://www.youtube.com/watch?v=${res1.data.slice(startIndex, startIndex + 11)}`, { quality: 'highestaudio' })
-        .pipe(fs.createWriteStream(`music/${res1.data.slice(startIndex, startIndex + 11)}.mp3`))
-        .on("finish", () => {
-          console.log("Done")
-        })
-      // .then(console.log('done'))
+      var id = res1.data.slice(startIndex, startIndex + 11)
+      // console.log("Getting url for id: ", id)
+      let e = await ytdl.getInfo(`http://www.youtube.com/watch?v=${id}`);
+      let audioFormat = ytdl.chooseFormat(e.formats, { quality: 'highestaudio', filter: 'audioonly' });
+      var url = audioFormat.url;
+      res.json({
+        url: url
+      })
     })
-})
+});
 
 io.on('connection', (socket) => {
   console.log('a user connected');
 
   socket.on('playsong', song => {
-    io.emit('playsong', song)
+    axios
+    .get(`https://vid.puffyan.us/search?q=${song}+song`)
+    .then(async (res1) => {
+      var startIndex = res1.data.indexOf("href=\"/watch?v=") + 15
+      var id = res1.data.slice(startIndex, startIndex + 11)
+      // console.log("Getting url for id: ", id)
+      let e = await ytdl.getInfo(`http://www.youtube.com/watch?v=${id}`);
+      let audioFormat = ytdl.chooseFormat(e.formats, { quality: 'highestaudio', filter: 'audioonly' });
+      var url = audioFormat.url;
+      io.emit('playsong', url)
+    })
+    
   })
 
   socket.on('disconnect', () => {
