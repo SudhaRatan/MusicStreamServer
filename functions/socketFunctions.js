@@ -12,4 +12,8 @@ const getSong = async (song) => {
   return { url, title, thumbnail };
 }
 
+const getSongV2 = (song) => {
+
+}
+
 module.exports = { getSong }

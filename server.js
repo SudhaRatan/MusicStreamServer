@@ -27,11 +27,15 @@ app.get('/music', (req, res) => {
   res.send("Ok")
 })
 
-
 app.get("/music/:song", async function (req, res) {
-  var { url, title, thumbnail } = await getSong(req.params.song);
-  res.json({ url, title, thumbnail })
+  const songName = req.params.song
+  var { url, title, thumbnail } = await getSong(songName);
+  res.json({ url, title, thumbnail, songName })
 });
+
+app.post("/music/songv2", async function (req, res) {
+  
+})
 
 io.on('connection', (socket) => {
 
