@@ -12,8 +12,14 @@ const getSong = async (song) => {
   return { url, title, thumbnail };
 }
 
-const getSongV2 = (song) => {
-
+const getSongV2 = async (song, count) => {
+  var list = await youtubesearchapi.GetListByKeyword(song);
+  // console.log(list.items)
+  let e = await ytdl.getInfo(`http://www.youtube.com/watch?v=${list.items[count].id}`);
+  let audioFormat = ytdl.chooseFormat(e.formats, { quality: 'highestaudio', filter: 'audioonly' });
+  var url = audioFormat.url;
+  // console.log(url)
+  return url;
 }
 
-module.exports = { getSong }
+module.exports = { getSong, getSongV2 }

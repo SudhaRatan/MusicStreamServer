@@ -12,7 +12,7 @@ const corsOptions = {
   credentials: true,            //access-control-allow-credentials:true
   optionSuccessStatus: 200,
 }
-const { getSong } = require('./functions/socketFunctions')
+const { getSong, getSongV2 } = require('./functions/socketFunctions')
 
 app.use(cors(corsOptions))
 const io = new Server(server, { cors: { origin: "*" } });
@@ -34,7 +34,12 @@ app.get("/music/:song", async function (req, res) {
 });
 
 app.post("/music/songv2", async function (req, res) {
-  
+  if (req.body.name !== null) {
+    var url = await getSongV2(req.body.name, req.body.count)
+    res.json({ url: url, stat:true })
+  }else {
+    res.json({stat: false})
+  }
 })
 
 io.on('connection', (socket) => {
@@ -65,7 +70,7 @@ io.on('connection', (socket) => {
 
   socket.on('playsong', async (song) => {
     var { url, title, thumbnail } = await getSong(song);
-    io.emit('playsong', { url, title, thumbnail })
+    io.emit('playsong', { url, title, thumbnail, song })
   })
 
   socket.on('disconnect', () => {
