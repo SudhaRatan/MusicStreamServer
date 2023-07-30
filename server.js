@@ -14,6 +14,8 @@ const corsOptions = {
 }
 const { getSong, getSongV2 } = require('./functions/socketFunctions')
 
+var count = 0;
+
 app.use(cors(corsOptions))
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -43,8 +45,10 @@ app.post("/music/songv2", async function (req, res) {
 })
 
 io.on('connection', (socket) => {
-
+  count = count + 1;
   console.log('a user connected');
+
+  io.emit('OnlineCount',count);
 
   socket.on('playsongOld', song => {
     axios
@@ -74,7 +78,9 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => {
+    count = count - 1;
     console.log('user disconnected');
+    io.emit('OnlineCount',count);
   });
 });
 
